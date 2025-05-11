@@ -29,6 +29,9 @@ systemd:
           --secrets-encryption"
         StandardOutput=journal
         StandardError=journal
+
+        [Install]
+        WantedBy=multi-user.target
       %{ if first_master == false }
       dropins:
         - name: 10-install-k3s-first-master.conf
