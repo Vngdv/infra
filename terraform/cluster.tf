@@ -74,7 +74,6 @@ resource "hcloud_firewall" "cluster_firewall" {
   rule {
     direction = "in"
     protocol  = "icmp"
-    port      = "any"
     source_ips = [
         hcloud_network_subnet.cluster_subnet.ip_range
     ]
