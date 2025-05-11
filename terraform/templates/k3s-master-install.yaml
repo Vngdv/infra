@@ -94,4 +94,6 @@ storage:
           disable-kube-proxy: true
           disable-network-policy: true
           flannel-backend: none
+          %{ if first_master != true }
           server: "https://${api_server_ip}:${api_server_port}"
+          %{ endif }
