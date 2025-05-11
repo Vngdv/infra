@@ -90,18 +90,24 @@ storage:
             # Otherweise we need to kill the pods manually
             - "node.cilium.io/agent-not-ready=true"
           token: "${cluster_token}"
-          cluster-init: true
           secrets-encryption: true
           disable:
             - servicelb
             - traefik
           disable-kube-proxy: true
           disable-network-policy: true
-          tls-san: 
+          tls-san:
             - "${api_server_ip}"
           flannel-backend: none
-          advertise-address: "${node_ip}"
+          bind-address: ${node_ip}
+          advertise-address: ${node_ip}
+          
+          %{ if node_index == 0 }
+          cluster-init: true
+          %{ endif }
 
           %{ if node_index != 0 }
           server: "https://${api_server_ip}:${api_server_port}"
           %{ endif }
+
+          
