@@ -64,6 +64,15 @@ resource "hcloud_firewall" "cluster_firewall" {
     ]
   }
 
+  rule {
+    direction = "in"
+    protocol  = "udp"
+    port      = "any"
+    source_ips = [
+        hcloud_network_subnet.cluster_subnet.ip_range
+    ]
+  }
+
   # Allow Kubernetes API traffic from my personal IP
   rule {
     direction = "in"

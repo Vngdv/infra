@@ -19,9 +19,11 @@ systemd:
         [Service]
         Type=oneshot
         RemainAfterExit=yes
-        # Somehow the rpm-ostree command keeps failing some of the time when the system just booted 
-        ExecStartPre=/bin/sleep 30
         ExecStart=/usr/bin/bash -c "/usr/bin/rpm-ostree install --apply-live --allow-inactive --assumeyes --idempotent kubectl helm https://github.com/k3s-io/k3s-selinux/releases/download/v1.6.latest.1/k3s-selinux-1.6-1.coreos.noarch.rpm"
+        Restart=on-failure
+        RestartSec=15
+        StartLimitIntervalSec=120
+        StartLimitBurst=5
 
     - name: "k3s.service"
       enabled: true
