@@ -110,8 +110,7 @@ resource "hcloud_server" "cluster_master" {
       network_id = hcloud_network.cluster_network.id
       ip         = "10.1.1.${count.index + 100}"
     }
-
-    delete_protection = true
+    
     ssh_keys = [for key, ssh_key in hcloud_ssh_key.main : ssh_key.id]
 
     user_data = count.index == 0 ? data.ignition_config.k3s_master_first.rendered : data.ignition_config.k3s_master.rendered

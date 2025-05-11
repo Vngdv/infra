@@ -9,7 +9,6 @@ systemd:
         Description=Install system packages
         Wants=network-online.target
         After=network-online.target
-        Before=zincati.service
         ConditionPathExists=|!/usr/bin/kubectl
         ConditionPathExists=|!/usr/bin/helm
         ConditionPathExists=|!/usr/share/selinux/packages/k3s.pp
@@ -20,6 +19,8 @@ systemd:
         [Service]
         Type=oneshot
         RemainAfterExit=yes
+        # Somehow the rpm-ostree command keeps failing some of the time when the system just booted 
+        ExecStartPre=/bin/sleep 30
         ExecStart=/usr/bin/bash -c "/usr/bin/rpm-ostree install --apply-live --allow-inactive --assumeyes --idempotent kubectl helm https://github.com/k3s-io/k3s-selinux/releases/download/v1.6.latest.1/k3s-selinux-1.6-1.coreos.noarch.rpm"
 
     - name: "k3s.service"
@@ -94,6 +95,8 @@ storage:
             - traefik
           disable-kube-proxy: true
           disable-network-policy: true
+          tls-san: 
+            - "${api_server_ip}"
           flannel-backend: none
           %{ if first_master != true }
           server: "https://${api_server_ip}:${api_server_port}"
