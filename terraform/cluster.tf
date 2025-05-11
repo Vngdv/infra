@@ -1,21 +1,19 @@
-data "ignition_config" "k3s_master_first" {
-  content = templatefile("${path.module}/templates/k3s-master-install.yaml", {
-      first_master      = true
-      cluster_token     = random_password.cluster_token.result,
-      api_server_ip     = "10.1.1.100"
-      api_server_port   = 6443
-  })
-  # strict       = true
+locals {
+  node_first_ip_index = 100
+  node_network_cidr = "10.1.1.0/24"
+  api_server_ip = cidrhost(local.node_network_cidr, local.node_first_ip_index)
+  api_server_port = 6443
 }
 
-data "ignition_config" "k3s_master" {
+data "ignition_config" "cluster_master_ignition" {
+  count = var.cluster_master_count
   content = templatefile("${path.module}/templates/k3s-master-install.yaml", {
-      first_master      = false
-      cluster_token     = random_password.cluster_token.result,
-      api_server_ip     = "10.1.1.100"
-      api_server_port   = 6443
+    node_index        = count.index
+    cluster_token     = random_password.cluster_token.result
+    api_server_ip     = local.api_server_ip
+    api_server_port   = local.api_server_port
+    node_ip           = cidrhost(local.node_network_cidr, local.node_first_ip_index + count.index)
   })
-  # strict       = true
 }
 
 data "hcloud_image" "snapshot_fedora_coreos" {
@@ -106,14 +104,14 @@ resource "hcloud_firewall" "cluster_firewall" {
 
 # Create a new server running debian
 resource "hcloud_server" "cluster_master" {
-    count = "${var.cluster_master_count}"
-    name        = "master-${count.index}"
-    image       = data.hcloud_image.snapshot_fedora_coreos.id
-    server_type = "${var.cluster_master_server_type}"
-    firewall_ids = [hcloud_firewall.cluster_firewall.id]
+    count         = var.cluster_master_count
+    name          = "master-${count.index}"
+    image         = data.hcloud_image.snapshot_fedora_coreos.id
+    server_type   = var.cluster_master_server_type
+    firewall_ids  = [hcloud_firewall.cluster_firewall.id]
 
-    location    = "${var.cluster_location}"
-    placement_group_id = hcloud_placement_group.cluster_placement_group.id
+    location            = var.cluster_location
+    placement_group_id  = hcloud_placement_group.cluster_placement_group.id
 
     public_net {
         ipv4_enabled = true
@@ -131,7 +129,7 @@ resource "hcloud_server" "cluster_master" {
     
     ssh_keys = [for key, ssh_key in hcloud_ssh_key.main : ssh_key.id]
 
-    user_data = count.index == 0 ? data.ignition_config.k3s_master_first.rendered : data.ignition_config.k3s_master.rendered
+    user_data = data.ignition_config.cluster_master_ignition[count.index].rendered
   
     depends_on = [
       hcloud_network_subnet.cluster_subnet

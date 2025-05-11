@@ -100,6 +100,8 @@ storage:
           tls-san: 
             - "${api_server_ip}"
           flannel-backend: none
-          %{ if first_master != true }
+          advertise-address: "${node_ip}"
+
+          %{ if node_index != 0 }
           server: "https://${api_server_ip}:${api_server_port}"
           %{ endif }
