@@ -19,14 +19,15 @@ systemd:
         [Service]
         Type=oneshot
         Environment="K3S_TOKEN=${cluster_token}"
-        ExecStart=/bin/sh -c "curl -sfL https://get.k3s.io | sh - server \
-          --flannel-backend=none \
-          --disable-kube-proxy \
-          --disable servicelb \
-          --disable-network-policy \
-          --disable traefik \
-          --cluster-init \
-          --secrets-encryption"
+        Environment="INSTALL_K3S_EXEC=server"
+        ExecStart=/bin/sh -c "curl -sfL https://get.k3s.io | sh -s - \
+            --flannel-backend=none \
+            --disable-kube-proxy \
+            --disable servicelb \
+            --disable-network-policy \
+            --disable traefik \
+            --cluster-init \
+            --secrets-encryption"
         StandardOutput=journal
         StandardError=journal
 
