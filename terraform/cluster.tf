@@ -46,9 +46,25 @@ resource "hcloud_network_subnet" "cluster_subnet" {
   ip_range     = "10.0.1.0/24"
 }
 
+resource "hcloud_placement_group" "cluster_placement_group" {
+  name     = "cluster_placement_group"
+  type     = "spread"
+}
+
 resource "hcloud_firewall" "cluster_firewall" {
   name = "cluster_firewall"
 
+  # Allow all internal traffic inside the subnet
+  rule {
+    direction = "in"
+    protocol  = "tcp"
+    port      = "any"
+    source_ips = [
+        hcloud_network_subnet.cluster_subnet.ip_range
+    ]
+  }
+
+  # Allow Kubernetes API traffic from my personal IP
   rule {
     direction = "in"
     protocol  = "tcp"
@@ -58,6 +74,7 @@ resource "hcloud_firewall" "cluster_firewall" {
     ]
   }
 
+  # Allow SSH traffic from my personal IP
   rule {
     direction = "in"
     protocol  = "tcp"
@@ -76,6 +93,10 @@ resource "hcloud_server" "cluster_master" {
     image       = data.hcloud_image.snapshot_fedora_coreos.id
     server_type = "${var.cluster_master_server_type}"
     firewall_ids = [hcloud_firewall.cluster_firewall.id]
+
+    datacenter = "${var.cluster_datacenter}"
+    placement_group_id = hcloud_placement_group.cluster_placement_group.id
+
     public_net {
         ipv4_enabled = true
         ipv6_enabled = true

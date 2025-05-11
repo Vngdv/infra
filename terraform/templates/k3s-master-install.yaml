@@ -84,6 +84,8 @@ storage:
       contents:
         inline: |
           node-label:
+            # Cilium needs this label to be set on fresh clusters
+            # Otherweise we need to kill the pods manually
             - "node.cilium.io/agent-not-ready=true"
           token: "${cluster_token}"
           cluster-init: true
