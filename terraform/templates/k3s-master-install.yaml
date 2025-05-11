@@ -99,9 +99,10 @@ storage:
           tls-san:
             - "${api_server_ip}"
           flannel-backend: none
-          bind-address: ${node_ip}
+          # bind-address: ${node_ip}
           advertise-address: ${node_ip}
-          
+          node_ip: ${node_ip}
+
           %{ if node_index == 0 }
           cluster-init: true
           %{ endif }
