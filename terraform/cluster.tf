@@ -2,7 +2,7 @@ data "ignition_config" "k3s_master_first" {
   content = templatefile("${path.module}/templates/k3s-master-install.yaml", {
       first_master      = true
       cluster_token     = random_password.cluster_token.result,
-      api_server_ip     = "10.0.1.100"
+      api_server_ip     = "10.1.1.100"
       api_server_port   = 6443
   })
   # strict       = true
@@ -12,7 +12,7 @@ data "ignition_config" "k3s_master" {
   content = templatefile("${path.module}/templates/k3s-master-install.yaml", {
       first_master      = false
       cluster_token     = random_password.cluster_token.result,
-      api_server_ip     = "10.0.1.100"
+      api_server_ip     = "10.1.1.100"
       api_server_port   = 6443
   })
   # strict       = true
@@ -35,15 +35,15 @@ resource "hcloud_ssh_key" "main" {
 }
 
 resource "hcloud_network" "cluster_network" {
-  name     = "k3s-cluster-network"
-  ip_range = "10.0.1.0/16"
+  name     = "cluster_network"
+  ip_range = "10.1.0.0/16"
 }
 
 resource "hcloud_network_subnet" "cluster_subnet" {
   type         = "cloud"
   network_id   = hcloud_network.cluster_network.id
   network_zone = "eu-central"
-  ip_range     = "10.0.1.0/24"
+  ip_range     = "10.1.1.0/24"
 }
 
 resource "hcloud_placement_group" "cluster_placement_group" {
@@ -108,7 +108,7 @@ resource "hcloud_server" "cluster_master" {
 
     network {
       network_id = hcloud_network.cluster_network.id
-      ip         = "10.0.1.${count.index + 100}"
+      ip         = "10.1.1.${count.index + 100}"
     }
 
     delete_protection = true

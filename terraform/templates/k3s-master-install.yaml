@@ -20,9 +20,8 @@ systemd:
         [Service]
         Type=oneshot
         RemainAfterExit=yes
-        ExecStart=rpm-ostree install --apply-live --allow-inactive --assumeyes kubectl helm https://github.com/k3s-io/k3s-selinux/releases/download/v1.6.latest.1/k3s-selinux-1.6-1.coreos.noarch.rpm
+        ExecStart=/usr/bin/bash -c "/usr/bin/rpm-ostree install --apply-live --cache-only --allow-inactive --assumeyes --idempotent kubectl helm https://github.com/k3s-io/k3s-selinux/releases/download/v1.6.latest.1/k3s-selinux-1.6-1.coreos.noarch.rpm"
 
- 
     - name: "k3s.service"
       enabled: true
       # Reference: K3s systemd service file https://get.k3s.io/

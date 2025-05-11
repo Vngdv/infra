@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Set variable for k3s ip
-K3S_IP=10.0.1.100
+K3S_IP=10.1.1.100
 K3S_PORT=6443
 
 # Setup Cilium
