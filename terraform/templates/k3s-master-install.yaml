@@ -1,0 +1,38 @@
+variant: fcos
+version: 1.5.0
+systemd:
+  units:
+    - name: k3s-server.service
+      enabled: true
+      command: start
+      after:
+        - network-online.target
+      wants:
+        - network-online.target
+      contents: |
+        [Unit]
+        Description=Initialize K3s Server
+        After=network-online.target
+        Wants=network-online.target
+        ConditionFirstBoot=true
+
+        [Service]
+        Type=oneshot
+        Environment="K3S_TOKEN=${cluster_token}"
+        ExecStart=/bin/sh -c "curl -sfL https://get.k3s.io | sh - server \
+          --flannel-backend=none \
+          --disable-kube-proxy \
+          --disable servicelb \
+          --disable-network-policy \
+          --disable traefik \
+          --cluster-init \
+          --secrets-encryption"
+        StandardOutput=journal
+        StandardError=journal
+      %{ if first_master == false }
+      dropins:
+        - name: 10-install-k3s-first-master.conf
+          contents: |
+            [Service]
+            Environment="K3_SERVER=https://${api_server_ip}:${api_server_port}"
+      %{ endif }

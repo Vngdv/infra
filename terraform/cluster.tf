@@ -1,3 +1,23 @@
+data "ignition_config" "k3s_master_first" {
+  content = templatefile("${path.module}/templates/k3s-master-install.yaml", {
+      first_master      = true
+      cluster_token     = random_password.cluster_token.result,
+      api_server_ip     = "10.0.1.100"
+      api_server_port   = 6443
+  })
+  # strict       = true
+}
+
+data "ignition_config" "k3s_master" {
+  content = templatefile("${path.module}/templates/k3s-master-install.yaml", {
+      first_master      = false
+      cluster_token     = random_password.cluster_token.result,
+      api_server_ip     = "10.0.1.100"
+      api_server_port   = 6443
+  })
+  # strict       = true
+}
+
 data "hcloud_image" "snapshot_fedora_coreos" {
   with_selector = "os=fedora-coreos"
   most_recent = true
@@ -73,13 +93,8 @@ resource "hcloud_server" "cluster_master" {
     delete_protection = true
     ssh_keys = [for key, ssh_key in hcloud_ssh_key.main : ssh_key.id]
 
-    user_data = templatefile("${path.module}/templates/k3s-master-install.sh", {
-      first_master      = count.index == 0 ? true : false
-      cluster_token     = random_password.cluster_token.result,
-      api_server_ip     = "10.0.1.100"
-      api_server_port   = 6443
-    })
-
+    user_data = count.index == 0 ? data.ignition_config.k3s_master_first.rendered : data.ignition_config.k3s_master.rendered
+  
     depends_on = [
       hcloud_network_subnet.cluster_subnet
     ]

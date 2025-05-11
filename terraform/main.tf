@@ -13,6 +13,10 @@ terraform {
       source  = "hetznercloud/hcloud"
       version = "~> 1.45"
     }
+      ignition = {
+      source  = "e-breuninger/ignition"
+      version = "1.0.0"
+    }
   }
 }
 
@@ -20,3 +24,5 @@ terraform {
 provider "hcloud" {
   token = var.hcloud_token
 }
+
+provider "ignition" {}
