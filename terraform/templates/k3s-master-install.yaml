@@ -2,41 +2,96 @@ variant: fcos
 version: 1.5.0
 systemd:
   units:
-    - name: k3s-server.service
+    - name: "rpm-ostree-install-k3s-dependencies.service"
       enabled: true
-      command: start
-      after:
-        - network-online.target
-      wants:
-        - network-online.target
       contents: |
         [Unit]
-        Description=Initialize K3s Server
-        After=network-online.target
+        Description=Install system packages
         Wants=network-online.target
-        ConditionFirstBoot=true
+        After=network-online.target
+        Before=zincati.service
+        ConditionPathExists=|!/usr/bin/kubectl
+        ConditionPathExists=|!/usr/bin/helm
+        ConditionPathExists=|!/usr/share/selinux/packages/k3s.pp
+
+        [Install]
+        WantedBy=multi-user.target     
 
         [Service]
         Type=oneshot
-        Environment="K3S_TOKEN=${cluster_token}"
-        Environment="INSTALL_K3S_EXEC=server"
-        ExecStart=/bin/sh -c "curl -sfL https://get.k3s.io | sh -s - \
-            --flannel-backend=none \
-            --disable-kube-proxy \
-            --disable servicelb \
-            --disable-network-policy \
-            --disable traefik \
-            --cluster-init \
-            --secrets-encryption"
-        StandardOutput=journal
-        StandardError=journal
+        RemainAfterExit=yes
+        ExecStart=rpm-ostree install --apply-live --allow-inactive --assumeyes kubectl helm https://github.com/k3s-io/k3s-selinux/releases/download/v1.6.latest.1/k3s-selinux-1.6-1.coreos.noarch.rpm
+
+ 
+    - name: "k3s.service"
+      enabled: true
+      # Reference: K3s systemd service file https://get.k3s.io/
+      contents: |
+        [Unit]
+        Description=Lightweight Kubernetes
+        Documentation=https://k3s.io
+        Wants=network-online.target
+        After=network-online.target
 
         [Install]
         WantedBy=multi-user.target
-      %{ if first_master == false }
-      dropins:
-        - name: 10-install-k3s-first-master.conf
-          contents: |
-            [Service]
-            Environment="K3_SERVER=https://${api_server_ip}:${api_server_port}"
-      %{ endif }
+
+        [Service]
+        Type=notify
+        EnvironmentFile=-/etc/default/%N
+        EnvironmentFile=-/etc/sysconfig/%N
+        EnvironmentFile=-/etc/systemd/system/%N.env
+        KillMode=process
+        Delegate=yes
+        User=root
+        # Having non-zero Limit*s causes performance problems due to accounting overhead
+        # in the kernel. We recommend using cgroups to do container-local accounting.
+        LimitNOFILE=1048576
+        LimitNPROC=infinity
+        LimitCORE=infinity
+        TasksMax=infinity
+        TimeoutStartSec=0
+        Restart=always
+        RestartSec=5s
+        ExecStartPre=/bin/sh -xc '! /usr/bin/systemctl is-enabled --quiet nm-cloud-setup.service 2>/dev/null'
+        ExecStartPre=-/sbin/modprobe br_netfilter
+        ExecStartPre=-/sbin/modprobe overlay
+        # If agents are needed design this in a more dynamic way
+        ExecStart=/usr/local/bin/k3s server
+
+storage:
+  files:
+    # Package registries
+    - path: /etc/yum.repos.d/kubernetes.repo
+      contents:
+        inline: |
+          [kubernetes]
+          name=Kubernetes
+          baseurl=https://pkgs.k8s.io/core:/stable:/v1.33/rpm/
+          enabled=1
+          gpgcheck=1
+          gpgkey=https://pkgs.k8s.io/core:/stable:/v1.33/rpm/repodata/repomd.xml.key
+    # Install K3s binary
+    - path: /usr/local/bin/k3s
+      overwrite: true
+      mode: 0755
+      contents:
+        source: "https://github.com/k3s-io/k3s/releases/download/v1.33.0%2Bk3s1/k3s"
+        # TODO include checksum
+    - path: /etc/rancher/k3s/config.yaml
+      overwrite: true
+      mode: 0750
+      contents:
+        inline: |
+          node-label:
+            - "node.cilium.io/agent-not-ready=true"
+          token: "${cluster_token}"
+          cluster-init: true
+          secrets-encryption: true
+          disable:
+            - servicelb
+            - traefik
+          disable-kube-proxy: true
+          disable-network-policy: true
+          flannel-backend: none
+          server: "https://${api_server_ip}:${api_server_port}"
