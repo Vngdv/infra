@@ -94,7 +94,7 @@ resource "hcloud_server" "cluster_master" {
     server_type = "${var.cluster_master_server_type}"
     firewall_ids = [hcloud_firewall.cluster_firewall.id]
 
-    datacenter = "${var.cluster_datacenter}"
+    location    = "${var.cluster_location}"
     placement_group_id = hcloud_placement_group.cluster_placement_group.id
 
     public_net {

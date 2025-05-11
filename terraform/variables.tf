@@ -30,8 +30,8 @@ variable "personal_ip" {
   default     = ""
 }
 
-variable "cluster_datacenter" {
+variable "cluster_location" {
   description = "Datacenter for the cluster"
   type        = string
-  default     = "fsn1-dc14"
+  default     = "fsn1"
 }
