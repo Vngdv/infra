@@ -9,6 +9,10 @@ systemd:
         Description=Install system packages
         Wants=network-online.target
         After=network-online.target
+        # We run before `zincati.service` to avoid conflicting rpm-ostree
+        # transactions.
+        Before=zincati.service
+
         ConditionPathExists=|!/usr/bin/kubectl
         ConditionPathExists=|!/usr/bin/helm
         ConditionPathExists=|!/usr/share/selinux/packages/k3s.pp
@@ -19,11 +23,17 @@ systemd:
         [Service]
         Type=oneshot
         RemainAfterExit=yes
-        ExecStart=/usr/bin/bash -c "/usr/bin/rpm-ostree install --apply-live --allow-inactive --assumeyes --idempotent kubectl helm https://github.com/k3s-io/k3s-selinux/releases/download/v1.6.latest.1/k3s-selinux-1.6-1.coreos.noarch.rpm"
         Restart=on-failure
         RestartSec=15
         StartLimitIntervalSec=120
         StartLimitBurst=5
+        ExecStart=/usr/bin/rpm-ostree install --apply-live --allow-inactive --assumeyes --idempotent  \
+          kubectl \
+          helm \
+          https://github.com/k3s-io/k3s-selinux/releases/download/v1.6.latest.1/k3s-selinux-1.6-1.coreos.noarch.rpm
+        ExecStart=/bin/touch /var/lib/%N.stamp
+        ExecStart=/bin/systemctl --no-block reboot
+
 
     - name: "k3s.service"
       enabled: true
@@ -59,7 +69,9 @@ systemd:
         ExecStartPre=-/sbin/modprobe br_netfilter
         ExecStartPre=-/sbin/modprobe overlay
         # If agents are needed design this in a more dynamic way
-        ExecStart=/usr/local/bin/k3s server
+        ExecStart=/usr/local/bin/k3s server \
+          --node-external-ip $(hostname -I | awk '{print $1}') 
+        
 
 storage:
   files:
@@ -90,23 +102,26 @@ storage:
             # Otherweise we need to kill the pods manually
             - "node.cilium.io/agent-not-ready=true"
           token: "${cluster_token}"
-          secrets-encryption: true
           disable:
             - servicelb
             - traefik
           disable-kube-proxy: true
           disable-network-policy: true
-          tls-san:
-            - "${api_server_ip}"
+          secrets-encryption: true
           flannel-backend: none
-          # bind-address: ${node_ip}
-          advertise-address: ${node_ip}
-          node_ip: ${node_ip}
 
+          node-ip: ${node_ip}
+          # Will be set by the K3s service
+          # node-external-ip: 
+
+          # Configuration first Master node
           %{ if node_index == 0 }
           cluster-init: true
+          tls-san:
+            - "${api_server_ip}"
           %{ endif }
 
+          # Configuration other Master nodes
           %{ if node_index != 0 }
           server: "https://${api_server_ip}:${api_server_port}"
           %{ endif }
