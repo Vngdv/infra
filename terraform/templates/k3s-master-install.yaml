@@ -69,8 +69,8 @@ systemd:
         ExecStartPre=-/sbin/modprobe br_netfilter
         ExecStartPre=-/sbin/modprobe overlay
         # If agents are needed design this in a more dynamic way
-        ExecStart=/usr/local/bin/k3s server \
-          --node-external-ip $(hostname -I | awk '{print $1}') 
+        ExecStart=/bin/bash -c "/usr/local/bin/k3s server \
+          --node-external-ip $(hostname -I | awk '{print $1}')"
         
 
 storage:
@@ -109,7 +109,8 @@ storage:
           disable-network-policy: true
           secrets-encryption: true
           flannel-backend: none
-
+          
+          advertise-address: ${node_ip}
           node-ip: ${node_ip}
           # Will be set by the K3s service
           # node-external-ip: 
