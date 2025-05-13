@@ -2,8 +2,8 @@
 # Info: Run this script as root
 
 # Variables
-K3S_IP=${k3s_api_ip}
-K3S_PORT=${k3s_api_port}
+K3S_IP=10.1.1.100
+K3S_PORT=6443
 GITOPS_REPO_URL="https://github.com/Vngdv/infra.git"
 GITOPS_REPO_PATH="cluster"
 

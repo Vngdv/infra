@@ -13,10 +13,6 @@ data "ignition_config" "cluster_master_ignition" {
     api_server_ip     = local.api_server_ip
     api_server_port   = local.api_server_port
     node_ip           = cidrhost(local.node_network_cidr, local.node_first_ip_index + count.index)
-    initialize_script = templatefile("${path.module}/templates/k3s-initialize.sh", {
-      k3s_api_ip = local.api_server_ip,
-      k3s_api_port = local.api_server_port,
-    })
   })
 }
 

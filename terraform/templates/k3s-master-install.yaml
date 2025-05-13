@@ -145,6 +145,6 @@ storage:
           server: "https://${api_server_ip}:${api_server_port}"
           %{ endif }
     - path: /tmp/k3s-initialize.sh
+      mode: 0755
       contents:
-        mode: 0755
-        inline: ${initialize_script}
+        source: "https://raw.githubusercontent.com/Vngdv/infra/refs/heads/main/terraform/templates/k3s-initialize.sh"
