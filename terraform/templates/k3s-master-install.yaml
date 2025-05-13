@@ -34,6 +34,24 @@ systemd:
         ExecStart=/bin/touch /var/lib/%N.stamp
         ExecStart=/bin/systemctl --no-block reboot
 
+    - name: "k3s-initialize.service"
+      enabled: ${node_index == 0}
+      contents: |
+        [Unit]
+        Description=Run k3s initialization script
+        Wants=network-online.target
+        After=network-online.target
+
+        ConditionPathExists=/var/lib/rpm-ostree-install-k3s-dependencies.stamp
+
+        [Install]
+        WantedBy=multi-user.target     
+
+        [Service]
+        Type=oneshot
+        RemainAfterExit=yes
+        ExecStart=/bin/sh /tmp/k3s-initialize.sh
+
 
     - name: "k3s.service"
       enabled: true
@@ -126,5 +144,7 @@ storage:
           %{ if node_index != 0 }
           server: "https://${api_server_ip}:${api_server_port}"
           %{ endif }
-
-          
+    - path: /tmp/k3s-initialize.sh
+      contents:
+        mode: 0755
+        inline: ${initialize_script}
